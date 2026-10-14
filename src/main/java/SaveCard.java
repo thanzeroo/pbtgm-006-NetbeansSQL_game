@@ -23,6 +23,7 @@ public class SaveCard extends javax.swing.JPanel {
         setMinimumSize(new Dimension(245, 500));
         setMaximumSize(new Dimension(245, 500));
 
+        setBackground(new java.awt.Color(0, 40, 40));
         setCardSelected(false);
         loadData();
 
@@ -37,21 +38,21 @@ public class SaveCard extends javax.swing.JPanel {
     private void loadData() {
         saveLabel.setText("SAVE " + id);
         nameLabel.setText("NAME: " + name);
-        strengthLabel.setText("STRENGTH:" + strength);
-   }
+        strengthLabel.setText("STRENGTH: " + strength);
+    }
 
     public void setCardSelected(boolean isSelected) {
         if (isSelected) {
             super.putClientProperty(FlatClientProperties.STYLE,
-                    "background: $Component.focusedBackground; "
+                    "background: rgb(0, 65, 65); "
                     + "arc: 15; "
-                    + "border: 2,2,2,2,$Component.focusColor,1,15"
+                    + "border: 3,3,3,3,rgb(0, 204, 102),1,15"
             );
         } else {
             super.putClientProperty(FlatClientProperties.STYLE,
-                    "background: $Component.borderColor; "
+                    "background: rgb(0, 40, 40); "
                     + "arc: 15; "
-                    + "border: 1,1,1,1,$Component.borderColor,1,15"
+                    + "border: 2,2,2,2,rgb(0, 102, 0),1,15"
             );
         }
         this.revalidate();
@@ -67,13 +68,16 @@ public class SaveCard extends javax.swing.JPanel {
         strengthLabel = new javax.swing.JLabel();
 
         saveLabel.setFont(new java.awt.Font("JetBrains Mono", 1, 20)); // NOI18N
+        saveLabel.setForeground(new java.awt.Color(255, 255, 255));
         saveLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         saveLabel.setText("SAVE 1");
 
         nameLabel.setFont(new java.awt.Font("JetBrains Mono", 0, 14)); // NOI18N
+        nameLabel.setForeground(new java.awt.Color(220, 255, 220));
         nameLabel.setText("NAME:");
 
         strengthLabel.setFont(new java.awt.Font("JetBrains Mono", 0, 14)); // NOI18N
+        strengthLabel.setForeground(new java.awt.Color(220, 255, 220));
         strengthLabel.setText("STRENGTH: ");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);

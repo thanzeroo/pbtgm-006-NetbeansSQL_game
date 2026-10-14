@@ -19,9 +19,15 @@ public class Save extends javax.swing.JFrame {
     public Save() {
         initComponents();
         setLocationRelativeTo(null);
+        getContentPane().setBackground(new java.awt.Color(0, 51, 51));
+
         JPanel contentPanel = new JPanel();
+        contentPanel.setBackground(new java.awt.Color(0, 51, 51));
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.X_AXIS));
 
+        scrollPanel.setBackground(new java.awt.Color(0, 51, 51));
+        scrollPanel.getViewport().setBackground(new java.awt.Color(0, 51, 51));
+        scrollPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 102, 0), 2));
         scrollPanel.setViewportView(contentPanel);
 
         loadDataPlayer(contentPanel);
@@ -74,31 +80,31 @@ public class Save extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Menu Save & Karakter");
 
-        btnPlay.setBackground(new java.awt.Color(153, 0, 102));
+        btnPlay.setBackground(new java.awt.Color(0, 102, 0));
         btnPlay.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
         btnPlay.setForeground(new java.awt.Color(255, 255, 255));
         btnPlay.setText("PLAY / LANJUTKAN");
         btnPlay.addActionListener(this::btnPlayActionPerformed);
 
-        btnNewGame.setBackground(new java.awt.Color(153, 0, 102));
+        btnNewGame.setBackground(new java.awt.Color(0, 102, 0));
         btnNewGame.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
         btnNewGame.setForeground(new java.awt.Color(255, 255, 255));
         btnNewGame.setText("NEW GAME");
         btnNewGame.addActionListener(this::btnNewGameActionPerformed);
 
-        btnDelete.setBackground(new java.awt.Color(153, 0, 102));
+        btnDelete.setBackground(new java.awt.Color(0, 102, 0));
         btnDelete.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
         btnDelete.setForeground(new java.awt.Color(255, 255, 255));
         btnDelete.setText("HAPUS SAVE");
         btnDelete.addActionListener(this::btnDeleteActionPerformed);
 
-        btnBack.setBackground(new java.awt.Color(153, 0, 102));
+        btnBack.setBackground(new java.awt.Color(0, 102, 0));
         btnBack.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
         btnBack.setForeground(new java.awt.Color(255, 255, 255));
         btnBack.setText("KEMBALI KE MENU");
         btnBack.addActionListener(this::btnBackActionPerformed);
 
-        scrollPanel.setBackground(new java.awt.Color(102, 0, 102));
+        scrollPanel.setBackground(new java.awt.Color(0, 51, 51));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);

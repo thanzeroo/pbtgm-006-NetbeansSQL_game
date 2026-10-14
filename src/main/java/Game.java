@@ -17,7 +17,8 @@ public class Game extends javax.swing.JFrame {
     // ==========================================
     private int currentPlayerId = 1;
     private String currentPlayerName = "Player";
-    private int strength = 1;       // Damage per klik (berlipat ganda *2 tiap monster mati)
+    private int strength = 1;       // Damage per klik
+    private int coins = 0;          // Koin untuk membeli upgrade damage
     private int clickCount = 0;     // Jumlah klik pemain
 
     // ==========================================
@@ -46,9 +47,10 @@ public class Game extends javax.swing.JFrame {
     public Game(int pId) {
         initComponents();
         setLocationRelativeTo(null); // Tampil tepat di tengah monitor
+        getContentPane().setBackground(new java.awt.Color(0, 51, 51));
 
         // Format font monospaced tebal untuk tampilan ASCII art
-        txtAsciiDisplay.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
+        txtAsciiDisplay.setFont(new Font("JetBrains Mono", Font.BOLD, 13));
         txtAsciiDisplay.setEditable(false);
 
         // Muat data Save player dari database
@@ -60,7 +62,7 @@ public class Game extends javax.swing.JFrame {
      */
     public void loadPlayerData(int pId) {
         this.currentPlayerId = pId;
-        String sql = "SELECT id, player_name, strength, click_count, current_monster_id, monster_current_hp FROM players WHERE id = ?";
+        String sql = "SELECT id, player_name, strength, stat_points, click_count, current_monster_id, monster_current_hp FROM players WHERE id = ?";
         try (Connection conn = dbconnection.configDB();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
@@ -70,6 +72,8 @@ public class Game extends javax.swing.JFrame {
                     this.currentPlayerName = rs.getString("player_name");
                     this.strength = rs.getInt("strength");
                     if (this.strength < 1) this.strength = 1;
+                    this.coins = rs.getInt("stat_points");
+                    if (this.coins < 0) this.coins = 0;
                     this.clickCount = rs.getInt("click_count");
                     int savedMonsterId = rs.getInt("current_monster_id");
                     int savedHp = rs.getInt("monster_current_hp");
@@ -80,6 +84,7 @@ public class Game extends javax.swing.JFrame {
                         this.currentHp = savedHp;
                     }
                     updateStatusDisplay();
+                    updateShopDisplay();
                     return;
                 }
             }
@@ -90,6 +95,7 @@ public class Game extends javax.swing.JFrame {
         // Fallback jika player belum ada
         loadMonsterFromDB(1);
         updateStatusDisplay();
+        updateShopDisplay();
     }
 
     /**
@@ -111,7 +117,7 @@ public class Game extends javax.swing.JFrame {
             }
         }
         
-        int totalCols = 110;
+        int totalCols = 100;
         int padLeft = Math.max(0, (totalCols - maxLen) / 2);
         String padding = " ".repeat(padLeft);
         
@@ -175,28 +181,69 @@ public class Game extends javax.swing.JFrame {
     }
 
     /**
-     * Memperbarui teks info HP, Damage, dan nama player
+     * Memperbarui teks info HP, Damage, Koin, dan nama player
      */
     private void updateStatusDisplay() {
         lblMonsterName.setText(monsterName + "  (Monster #" + monsterId + ")  -  Pemain: " + currentPlayerName);
         pbMonsterHp.setMaximum(maxHp);
         pbMonsterHp.setValue(currentHp);
-        lblHpInfo.setText("HP: " + currentHp + " / " + maxHp + "    |    Damage: " + strength + " (x2 Tiap Menang)    |    Total Klik: " + clickCount);
+        lblHpInfo.setText("HP: " + currentHp + " / " + maxHp + "    |    Damage: " + strength + "    |    Koin: " + coins + "    |    Total Klik: " + clickCount);
+    }
+
+    /**
+     * Memperbarui tampilan widget di sidebar shop
+     */
+    private void updateShopDisplay() {
+        if (lblCoins != null) {
+            lblCoins.setText("🪙 Koin: " + coins);
+        }
+        if (lblCurrentDmg != null) {
+            lblCurrentDmg.setText("🗡️ Damage: " + strength);
+        }
+    }
+
+    /**
+     * Logika Pembelian Peningkatan Damage menggunakan Koin
+     */
+    private void buyUpgrade(String upgradeName, int damageBonus, int cost) {
+        if (coins >= cost) {
+            coins -= cost;
+            strength += damageBonus;
+            updateStatusDisplay();
+            updateShopDisplay();
+            JOptionPane.showMessageDialog(this, 
+                "Berhasil membeli " + upgradeName + "!\n\n" +
+                "• Bonus Damage: +" + damageBonus + "\n" +
+                "• Total Damage Sekarang: " + strength + "\n" +
+                "• Sisa Koin: " + coins,
+                "Upgrade Sukses", 
+                JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, 
+                "Koin Anda tidak cukup untuk " + upgradeName + "!\n\n" +
+                "• Biaya Upgrade: " + cost + " Koin\n" +
+                "• Koin Anda Saat Ini: " + coins + " Koin\n" +
+                "• Kurang: " + (cost - coins) + " Koin lagi\n\n" +
+                "Serang monster untuk mengumpulkan koin!", 
+                "Koin Tidak Cukup", 
+                JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     /**
      * UPDATE: Menyimpan progres game ke tabel 'players' di database
      */
     public void saveGameProgress(boolean showNotification) {
-        String sql = "UPDATE players SET current_monster_id = ?, monster_current_hp = ?, strength = ?, click_count = ?, updated_at = NOW() WHERE id = ?";
+        String sql = "UPDATE players SET current_monster_id = ?, monster_current_hp = ?, strength = ?, stat_points = ?, click_count = ?, updated_at = NOW() WHERE id = ?";
         try (Connection conn = dbconnection.configDB();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
             ps.setInt(1, monsterId);
             ps.setInt(2, currentHp);
             ps.setInt(3, strength);
-            ps.setInt(4, clickCount);
-            ps.setInt(5, currentPlayerId);
+            ps.setInt(4, coins);
+            ps.setInt(5, clickCount);
+            ps.setInt(6, currentPlayerId);
             
             int updated = ps.executeUpdate();
             if (updated > 0 && showNotification) {
@@ -206,6 +253,7 @@ public class Game extends javax.swing.JFrame {
                     "• Monster Terakhir: " + monsterName + " (ID: " + monsterId + ")\n" +
                     "• Sisa HP: " + currentHp + " / " + maxHp + "\n" +
                     "• Damage (Strength): " + strength + "\n" +
+                    "• Koin: " + coins + "\n" +
                     "• Total Klik: " + clickCount, 
                     "Simpan Berhasil", 
                     JOptionPane.INFORMATION_MESSAGE);
@@ -226,6 +274,16 @@ public class Game extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        panelSidebar = new javax.swing.JPanel();
+        lblShopTitle = new javax.swing.JLabel();
+        lblCoins = new javax.swing.JLabel();
+        lblCurrentDmg = new javax.swing.JLabel();
+        btnUpgrade1 = new javax.swing.JButton();
+        btnUpgrade2 = new javax.swing.JButton();
+        btnUpgrade3 = new javax.swing.JButton();
+        btnUpgrade4 = new javax.swing.JButton();
+        btnUpgrade5 = new javax.swing.JButton();
+        lblSidebarTip = new javax.swing.JLabel();
         lblMonsterName = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
         txtAsciiDisplay = new javax.swing.JTextArea();
@@ -239,27 +297,138 @@ public class Game extends javax.swing.JFrame {
         setTitle("Game Monster Clicker");
         setPreferredSize(new java.awt.Dimension(1200, 700));
 
-        lblMonsterName.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        panelSidebar.setBackground(new java.awt.Color(0, 40, 40));
+
+        lblShopTitle.setFont(new java.awt.Font("JetBrains Mono", 1, 16)); // NOI18N
+        lblShopTitle.setForeground(new java.awt.Color(255, 255, 255));
+        lblShopTitle.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblShopTitle.setText("UPGRADE DAMAGE");
+
+        lblCoins.setFont(new java.awt.Font("JetBrains Mono", 1, 15)); // NOI18N
+        lblCoins.setForeground(new java.awt.Color(255, 215, 0));
+        lblCoins.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblCoins.setText("🦙 Koin: 0");
+
+        lblCurrentDmg.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        lblCurrentDmg.setForeground(new java.awt.Color(200, 255, 200));
+        lblCurrentDmg.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblCurrentDmg.setText("🗡️ Damage: 1");
+
+        btnUpgrade1.setBackground(new java.awt.Color(0, 102, 0));
+        btnUpgrade1.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        btnUpgrade1.setForeground(new java.awt.Color(255, 255, 255));
+        btnUpgrade1.setText("Awam (+1) | 10 Koin");
+        btnUpgrade1.addActionListener(this::btnUpgrade1ActionPerformed);
+
+        btnUpgrade2.setBackground(new java.awt.Color(0, 102, 0));
+        btnUpgrade2.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        btnUpgrade2.setForeground(new java.awt.Color(255, 255, 255));
+        btnUpgrade2.setText("Pemula (+3) | 25 Koin");
+        btnUpgrade2.addActionListener(this::btnUpgrade2ActionPerformed);
+
+        btnUpgrade3.setBackground(new java.awt.Color(0, 102, 0));
+        btnUpgrade3.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        btnUpgrade3.setForeground(new java.awt.Color(255, 255, 255));
+        btnUpgrade3.setText("Standar (+5) | 50 Koin");
+        btnUpgrade3.addActionListener(this::btnUpgrade3ActionPerformed);
+
+        btnUpgrade4.setBackground(new java.awt.Color(0, 102, 0));
+        btnUpgrade4.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        btnUpgrade4.setForeground(new java.awt.Color(255, 255, 255));
+        btnUpgrade4.setText("Luar Biasa (+7) | 100 Koin");
+        btnUpgrade4.addActionListener(this::btnUpgrade4ActionPerformed);
+
+        btnUpgrade5.setBackground(new java.awt.Color(0, 102, 0));
+        btnUpgrade5.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        btnUpgrade5.setForeground(new java.awt.Color(255, 255, 255));
+        btnUpgrade5.setText("Dewa (+9) | 200 Koin");
+        btnUpgrade5.addActionListener(this::btnUpgrade5ActionPerformed);
+
+        lblSidebarTip.setFont(new java.awt.Font("JetBrains Mono", 0, 11)); // NOI18N
+        lblSidebarTip.setForeground(new java.awt.Color(160, 210, 190));
+        lblSidebarTip.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblSidebarTip.setText("<html><center>Tips: Pukul monster<br>dapat +1 Koin!</center></html>");
+
+        javax.swing.GroupLayout panelSidebarLayout = new javax.swing.GroupLayout(panelSidebar);
+        panelSidebar.setLayout(panelSidebarLayout);
+        panelSidebarLayout.setHorizontalGroup(
+            panelSidebarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(panelSidebarLayout.createSequentialGroup()
+                .addGap(14, 14, 14)
+                .addGroup(panelSidebarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblShopTitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lblCoins, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lblCurrentDmg, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnUpgrade1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnUpgrade2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnUpgrade3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnUpgrade4, javax.swing.GroupLayout.DEFAULT_SIZE, 232, Short.MAX_VALUE)
+                    .addComponent(btnUpgrade5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lblSidebarTip))
+                .addGap(14, 14, 14))
+        );
+        panelSidebarLayout.setVerticalGroup(
+            panelSidebarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(panelSidebarLayout.createSequentialGroup()
+                .addGap(18, 18, 18)
+                .addComponent(lblShopTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(10, 10, 10)
+                .addComponent(lblCoins, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(6, 6, 6)
+                .addComponent(lblCurrentDmg, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(20, 20, 20)
+                .addComponent(btnUpgrade1, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(12, 12, 12)
+                .addComponent(btnUpgrade2, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(12, 12, 12)
+                .addComponent(btnUpgrade3, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(12, 12, 12)
+                .addComponent(btnUpgrade4, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(12, 12, 12)
+                .addComponent(btnUpgrade5, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(20, 20, 20)
+                .addComponent(lblSidebarTip, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(130, Short.MAX_VALUE))
+        );
+
+        lblMonsterName.setFont(new java.awt.Font("JetBrains Mono", 1, 18)); // NOI18N
+        lblMonsterName.setForeground(new java.awt.Color(255, 255, 255));
         lblMonsterName.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblMonsterName.setText("Monster Name");
 
+        jScrollPane1.setBackground(new java.awt.Color(0, 30, 30));
+
+        txtAsciiDisplay.setBackground(new java.awt.Color(0, 30, 30));
         txtAsciiDisplay.setColumns(20);
+        txtAsciiDisplay.setFont(new java.awt.Font("JetBrains Mono", 1, 13)); // NOI18N
+        txtAsciiDisplay.setForeground(new java.awt.Color(0, 255, 128));
         jScrollPane1.setViewportView(txtAsciiDisplay);
 
+        pbMonsterHp.setBackground(new java.awt.Color(0, 30, 30));
+        pbMonsterHp.setFont(new java.awt.Font("JetBrains Mono", 1, 12)); // NOI18N
+        pbMonsterHp.setForeground(new java.awt.Color(0, 153, 76));
         pbMonsterHp.setStringPainted(true);
 
+        lblHpInfo.setFont(new java.awt.Font("JetBrains Mono", 1, 13)); // NOI18N
+        lblHpInfo.setForeground(new java.awt.Color(255, 255, 255));
         lblHpInfo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblHpInfo.setText("HP: 25 / 25");
 
-        btnAttack.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        btnAttack.setText("SERANG!");
+        btnAttack.setBackground(new java.awt.Color(0, 102, 0));
+        btnAttack.setFont(new java.awt.Font("JetBrains Mono", 1, 16)); // NOI18N
+        btnAttack.setForeground(new java.awt.Color(255, 255, 255));
+        btnAttack.setText("⚔️ SERANG!");
         btnAttack.addActionListener(this::btnAttackActionPerformed);
 
-        btnSave.setFont(new java.awt.Font("Segoe UI", 1, 13)); // NOI18N
+        btnSave.setBackground(new java.awt.Color(0, 102, 0));
+        btnSave.setFont(new java.awt.Font("JetBrains Mono", 1, 13)); // NOI18N
+        btnSave.setForeground(new java.awt.Color(255, 255, 255));
         btnSave.setText("💾 SAVE GAME");
         btnSave.addActionListener(this::btnSaveActionPerformed);
 
-        btnBack.setFont(new java.awt.Font("Segoe UI", 1, 13)); // NOI18N
+        btnBack.setBackground(new java.awt.Color(0, 102, 0));
+        btnBack.setFont(new java.awt.Font("JetBrains Mono", 1, 13)); // NOI18N
+        btnBack.setForeground(new java.awt.Color(255, 255, 255));
         btnBack.setText("⬅ KEMBALI KE MENU SAVE");
         btnBack.addActionListener(this::btnBackActionPerformed);
 
@@ -268,42 +437,67 @@ public class Game extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(30, 30, 30)
+                .addGap(20, 20, 20)
+                .addComponent(panelSidebar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(20, 20, 20)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(lblMonsterName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 1140, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 880, Short.MAX_VALUE)
                     .addComponent(pbMonsterHp, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblHpInfo, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btnAttack, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(btnSave, javax.swing.GroupLayout.DEFAULT_SIZE, 560, Short.MAX_VALUE)
+                        .addComponent(btnSave, javax.swing.GroupLayout.DEFAULT_SIZE, 430, Short.MAX_VALUE)
                         .addGap(18, 18, 18)
-                        .addComponent(btnBack, javax.swing.GroupLayout.DEFAULT_SIZE, 560, Short.MAX_VALUE)))
-                .addGap(30, 30, 30))
+                        .addComponent(btnBack, javax.swing.GroupLayout.DEFAULT_SIZE, 430, Short.MAX_VALUE)))
+                .addGap(20, 20, 20))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(15, 15, 15)
-                .addComponent(lblMonsterName)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 460, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(pbMonsterHp, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(lblHpInfo)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btnAttack, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnSave, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnBack, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(panelSidebar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(lblMonsterName)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 460, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(pbMonsterHp, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(lblHpInfo)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(btnAttack, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(btnSave, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(btnBack, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addGap(18, 18, 18))
         );
 
         pack();
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void btnUpgrade1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpgrade1ActionPerformed
+        buyUpgrade("Peningkatan Awam", 1, 10);
+    }//GEN-LAST:event_btnUpgrade1ActionPerformed
+
+    private void btnUpgrade2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpgrade2ActionPerformed
+        buyUpgrade("Peningkatan Pemula", 3, 25);
+    }//GEN-LAST:event_btnUpgrade2ActionPerformed
+
+    private void btnUpgrade3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpgrade3ActionPerformed
+        buyUpgrade("Peningkatan Standar", 5, 50);
+    }//GEN-LAST:event_btnUpgrade3ActionPerformed
+
+    private void btnUpgrade4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpgrade4ActionPerformed
+        buyUpgrade("Peningkatan Luar Biasa", 7, 100);
+    }//GEN-LAST:event_btnUpgrade4ActionPerformed
+
+    private void btnUpgrade5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpgrade5ActionPerformed
+        buyUpgrade("Peningkatan Dewa", 9, 200);
+    }//GEN-LAST:event_btnUpgrade5ActionPerformed
 
     /**
      * Event Handler untuk Tombol Serang / Hit
@@ -319,28 +513,35 @@ public class Game extends javax.swing.JFrame {
         if (currentHp < 0) currentHp = 0;
         clickCount++;
 
-        // 2. Perbarui status visual HP dan klik
-        pbMonsterHp.setValue(currentHp);
-        lblHpInfo.setText("HP: " + currentHp + " / " + maxHp + "    |    Damage: " + strength + " (x2 Tiap Menang)    |    Total Klik: " + clickCount);
+        // 2. Setiap pukulan memberikan koin (+1 Koin)
+        coins += 1;
 
-        // 3. Tampilkan Visual Efek Kena Serang di tengah
+        // 3. Perbarui status visual HP, koin, damage, dan total klik
+        pbMonsterHp.setValue(currentHp);
+        updateStatusDisplay();
+        updateShopDisplay();
+
+        // 4. Tampilkan Visual Efek Kena Serang di tengah
         txtAsciiDisplay.setText(centerAscii(asciiHit));
 
-        // 4. Jika monster kalah karena serangan ini
+        // 5. Jika monster kalah karena serangan ini
         if (currentHp <= 0) {
-            // KUNCI LANGSUNG! Mencegah race condition yang membuat monster loncat (1, 3, 5)
+            // KUNCI LANGSUNG! Mencegah race condition yang membuat monster loncat
             isMonsterDefeated = true;
             btnAttack.setEnabled(false);
 
-            // Berikan efek buff damage *2 untuk monster berikutnya
-            strength *= 2;
+            // Ganti efek multiple: beri hadiah koin kemenangan untuk monster mati
+            int bonusKemenangan = 20;
+            coins += bonusKemenangan;
+            updateShopDisplay();
 
             Timer hitTimer = new Timer(250, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     txtAsciiDisplay.setText(centerAscii(
                         "=== " + monsterName.toUpperCase() + " DIKALAHKAN! ===\n\n" +
-                        "★ EFEK BONUS DIAKTIFKAN: DAMAGE BERIKUTNYA MENJADI " + strength + " (2X LIPAT)! ★"
+                        "★ HADIAH KEMENANGAN: +" + bonusKemenangan + " KOIN DIDAPATKAN! ★\n\n" +
+                        "Gunakan koin di sidebar kiri untuk meningkatkan damage!"
                     ));
 
                     // Beri jeda 1 detik lalu muat monster berikutnya secara berurutan
@@ -419,9 +620,19 @@ public class Game extends javax.swing.JFrame {
     private javax.swing.JButton btnAttack;
     private javax.swing.JButton btnBack;
     private javax.swing.JButton btnSave;
+    private javax.swing.JButton btnUpgrade1;
+    private javax.swing.JButton btnUpgrade2;
+    private javax.swing.JButton btnUpgrade3;
+    private javax.swing.JButton btnUpgrade4;
+    private javax.swing.JButton btnUpgrade5;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lblCoins;
+    private javax.swing.JLabel lblCurrentDmg;
     private javax.swing.JLabel lblHpInfo;
     private javax.swing.JLabel lblMonsterName;
+    private javax.swing.JLabel lblShopTitle;
+    private javax.swing.JLabel lblSidebarTip;
+    private javax.swing.JPanel panelSidebar;
     private javax.swing.JProgressBar pbMonsterHp;
     private javax.swing.JTextArea txtAsciiDisplay;
     // End of variables declaration//GEN-END:variables

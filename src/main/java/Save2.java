@@ -13,6 +13,7 @@ public class Save2 extends javax.swing.JFrame {
     public Save2() {
         initComponents();
         setLocationRelativeTo(null); 
+        getContentPane().setBackground(new java.awt.Color(0, 51, 51));
         loadDataPlayer(); 
     }
 
@@ -81,19 +82,27 @@ public class Save2 extends javax.swing.JFrame {
         ));
         jScrollPane1.setViewportView(jTable1);
 
-        btnPlay.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnPlay.setBackground(new java.awt.Color(0, 102, 0));
+        btnPlay.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
+        btnPlay.setForeground(new java.awt.Color(255, 255, 255));
         btnPlay.setText("▶ PLAY / LANJUTKAN");
         btnPlay.addActionListener(this::btnPlayActionPerformed);
 
-        btnNewGame.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnNewGame.setBackground(new java.awt.Color(0, 102, 0));
+        btnNewGame.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
+        btnNewGame.setForeground(new java.awt.Color(255, 255, 255));
         btnNewGame.setText("✚ NEW GAME");
         btnNewGame.addActionListener(this::btnNewGameActionPerformed);
 
-        btnDelete.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnDelete.setBackground(new java.awt.Color(0, 102, 0));
+        btnDelete.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
+        btnDelete.setForeground(new java.awt.Color(255, 255, 255));
         btnDelete.setText("🗑 HAPUS SAVE");
         btnDelete.addActionListener(this::btnDeleteActionPerformed);
 
-        btnBack.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnBack.setBackground(new java.awt.Color(0, 102, 0));
+        btnBack.setFont(new java.awt.Font("JetBrains Mono", 1, 14)); // NOI18N
+        btnBack.setForeground(new java.awt.Color(255, 255, 255));
         btnBack.setText("⬅ KEMBALI KE MENU");
         btnBack.addActionListener(this::btnBackActionPerformed);
 
