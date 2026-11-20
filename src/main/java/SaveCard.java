@@ -60,7 +60,7 @@ public class SaveCard extends javax.swing.JPanel {
     }
 
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         saveLabel = new javax.swing.JLabel();
@@ -103,11 +103,11 @@ public class SaveCard extends javax.swing.JPanel {
                                 .addComponent(strengthLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addContainerGap(46, Short.MAX_VALUE))
         );
-    }// </editor-fold>                        
+    }// </editor-fold>//GEN-END:initComponents
 
-    // Variables declaration - do not modify                     
+    // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel nameLabel;
     private javax.swing.JLabel saveLabel;
     private javax.swing.JLabel strengthLabel;
-    // End of variables declaration                   
+    // End of variables declaration//GEN-END:variables
 }

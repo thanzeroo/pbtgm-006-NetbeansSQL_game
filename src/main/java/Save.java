@@ -167,7 +167,7 @@ public class Save extends javax.swing.JFrame {
             return;
         }
 
-        String sql = "INSERT INTO players (player_name, strength, stat_points, click_count, current_monster_id, monster_current_hp) VALUES (?, 1, 0, 0, 1, 25)";
+        String sql = "INSERT INTO players (player_name, strength, stat_points, click_count, current_monster_id, monster_current_hp) VALUES (?, 1, 0, 0, 1, 80)";
         try (Connection conn = dbconnection.configDB(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, name.trim());
@@ -230,7 +230,7 @@ public class Save extends javax.swing.JFrame {
      */
     public static void main(String args[]) {
         FlatDarkLaf.setup();
-        java.awt.EventQueue.invokeLater(() -> new Save2().setVisible(true));
+        java.awt.EventQueue.invokeLater(() -> new Save().setVisible(true));
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
